@@ -10,6 +10,7 @@ TODO: Implement!
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
+from find_obj import filter_matches,explore_match
 
 
 def homography(image_a, image_b, bff_match=False):
@@ -34,23 +35,10 @@ def homography(image_a, image_b, bff_match=False):
     kp_a, des_a = sift.detectAndCompute(image_a,None)
     kp_b, des_b = sift.detectAndCompute(image_b,None)
     
-   
-    """
-    # FLANN parameters
-    FLANN_INDEX_KDTREE = 0
-    index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-    search_params = dict(checks=50)   # or pass empty dictionary
-    
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-    matches = flann.knnMatch(des_a,des_b,k=2)
-    
-
-    #print flann
-    
-    """
     bf = cv2.BFMatcher()
-    matches = bf.knnMatch(des_a,des_b,k=2)
-    
+    matches = bf.knnMatch(des_a,trainDescriptors = des_b,k=2)
+    p1, p2, kp_pairs = filter_matches(kp_a, kp_b, matches)
+    explore_match('find_obj', image_a,image_b,kp_pairs)#cv2 shows image
     
     good = []
     for m,n in matches:
@@ -60,14 +48,14 @@ def homography(image_a, image_b, bff_match=False):
     
     if len(good)>MIN_MATCH_COUNT:
         src_pts = np.float32([ kp_a[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
-        dst_pts = np.float32([ kp_b[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
-    
-    img3 = cv2.drawKeypoints(image_a, kp_a,color=(0,255,0),flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    img4 = cv2.drawKeypoints(image_b, kp_b,color=(0,255,0),flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    plt.imshow(img3),plt.show()
-    plt.imshow(img4),plt.show()
+        dst_pts = np.float32([ kp_b[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
 
-    M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
+    
+
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+
+    M, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 5.0)
     return M
 
 
