@@ -9,6 +9,7 @@ TODO: Implement!
 
 import cv2
 import numpy as np
+from matplotlib import pyplot as plt
 
 
 def homography(image_a, image_b, bff_match=False):
@@ -26,8 +27,8 @@ def homography(image_a, image_b, bff_match=False):
     MIN_MATCH_COUNT = 10
 
     
-    #sift = cv2.SIFT(edgeThreshold=10, sigma = 1.5, contrastThreshold=0.04)
-    sift = cv2.orb()
+    sift = cv2.SIFT(edgeThreshold=10, sigma = 1.25, contrastThreshold=0.08)
+    #sift = cv2.orb()
     #sift = cv2.BRISK()
 
     kp_a, des_a = sift.detectAndCompute(image_a,None)
@@ -61,11 +62,14 @@ def homography(image_a, image_b, bff_match=False):
         src_pts = np.float32([ kp_a[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
         dst_pts = np.float32([ kp_b[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
     
-    
-    
+    img3 = cv2.drawKeypoints(image_a, kp_a,color=(0,255,0),flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    img4 = cv2.drawKeypoints(image_b, kp_b,color=(0,255,0),flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    plt.imshow(img3),plt.show()
+    plt.imshow(img4),plt.show()
 
     M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
     return M
+
 
 
 def warp_image(image, homography):
@@ -102,3 +106,4 @@ def create_mosaic(images, origins):
              alpha channel set to zero.
     """
     pass
+
