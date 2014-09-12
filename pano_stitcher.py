@@ -26,14 +26,15 @@ def homography(image_a, image_b, bff_match=False):
     MIN_MATCH_COUNT = 10
 
     
-    #sift = cv2.SIFT(edgeThreshold=10, sigma = 1.50)
-    #orb = cv2.orb()
-    sift = cv2.BRISK()
+    #sift = cv2.SIFT(edgeThreshold=10, sigma = 1.5, contrastThreshold=0.04)
+    sift = cv2.orb()
+    #sift = cv2.BRISK()
 
     kp_a, des_a = sift.detectAndCompute(image_a,None)
     kp_b, des_b = sift.detectAndCompute(image_b,None)
     
-    
+   
+    """
     # FLANN parameters
     FLANN_INDEX_KDTREE = 0
     index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
@@ -42,16 +43,17 @@ def homography(image_a, image_b, bff_match=False):
     flann = cv2.FlannBasedMatcher(index_params, search_params)
     matches = flann.knnMatch(des_a,des_b,k=2)
     
-    print flann
+
+    #print flann
     
     """
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(des_a,des_b,k=2)
-    """
+    
     
     good = []
     for m,n in matches:
-        if m.distance < 0.74*n.distance:
+        if m.distance < .75*n.distance:
             good.append(m)
     
     
