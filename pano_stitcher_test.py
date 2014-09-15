@@ -88,7 +88,11 @@ class TestPanoStitcher(unittest.TestCase):
         # correct shape.
         scale = 2.0
         H_scale = self._scale_homography(scale)
+        # cv2.imshow("original", image)
+        # cv2.waitKey(0)
         image_scaled, origin = pano_stitcher.warp_image(image, H_scale)
+        # cv2.imshow( "scaled", image_scaled)
+        # cv2.waitKey(0)
         scaled_rows, scaled_cols, _ = image_scaled.shape
         self.assertEqual(rows * scale, scaled_rows)
         self.assertEqual(cols * scale, scaled_cols)

@@ -10,7 +10,7 @@ TODO: Implement!
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
-from find_obj import filter_matches, explore_match
+from find_obj import filter_matches,explore_match
 
 
 def homography(image_a, image_b, bff_match=False):
@@ -61,7 +61,7 @@ def homography(image_a, image_b, bff_match=False):
 
     M, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 5)
     return M
-
+    
 
 def warp_image(image, homography):
     """Warps 'image' by 'homography'
@@ -81,9 +81,16 @@ def warp_image(image, homography):
         corner in the target space of 'homography', which accounts for any
         offset translation component of the homography.
     """
-
-    image = warpPerspective(image, homography, )
-    pass
+    upperLeft = np.array([[0],[0],[1]])
+    transformUpperLeft = np.dot(homography, upperLeft)
+    asList = list(transformUpperLeft)
+    tup = (asList[0][0], asList[1][0])
+    y, x, z = image.shape
+    x_scale = int(round(homography[0, 0]))
+    y_scale = int(round(homography[1, 1]))
+    image = cv2.warpPerspective(image, homography, (x_scale * x, y_scale * y))
+    print "\n" + str(tup) + "\n"
+    return image, tup
 
 
 def create_mosaic(images, origins):
@@ -99,3 +106,4 @@ def create_mosaic(images, origins):
              alpha channel set to zero.
     """
     pass
+
