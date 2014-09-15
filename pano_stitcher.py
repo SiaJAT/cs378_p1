@@ -10,7 +10,6 @@ TODO: Implement!
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
-from find_obj import filter_matches,explore_match
 
 
 def homography(image_a, image_b, bff_match=False):
@@ -61,7 +60,7 @@ def homography(image_a, image_b, bff_match=False):
 
     M, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 5)
     return M
-    
+
 
 def warp_image(image, homography):
     """Warps 'image' by 'homography'
