@@ -87,8 +87,10 @@ def warp_image(image, homography):
     y, x, z = image.shape
     x_scale = int(round(homography[0, 0]))
     y_scale = int(round(homography[1, 1]))
+
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
     image = cv2.warpPerspective(image, homography, (x_scale * x, y_scale * y))
-    print "\n" + str(tup) + "\n"
+    
     return image, tup
 
 
@@ -104,5 +106,13 @@ def create_mosaic(images, origins):
              in the mosaic not covered by any input image should have their
              alpha channel set to zero.
     """
+    mapped = map(lambda x, y: (x,y), origins, images)
+    
+    mapped_sorted = sorted(mapped, key = lambda x: x[0])
+
+    for i in range(len(mapped)):
+      print mapped_sorted[i][0][0]
+
+
     pass
 

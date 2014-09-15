@@ -105,6 +105,8 @@ class TestPanoStitcher(unittest.TestCase):
         # A homography that only translates the image should not change shape.
         H_translate = self._translate_homography(101, 42)
         image_translated, origin = pano_stitcher.warp_image(image, H_translate)
+        # cv2.imshow( "translate", image_translated)
+        # cv2.waitKey(0)
         translated_rows, translated_cols, _ = image_translated.shape
         self.assertEqual(rows, translated_rows)
         self.assertEqual(cols, translated_cols)
@@ -122,6 +124,7 @@ class TestPanoStitcher(unittest.TestCase):
         books_1_origin, books_2_origin, books_3_origin = self._read_origins()
         read_alpha = -1
 
+    
         # Read the component images.
         books_1_warped = cv2.imread("test_data/books_1_warped.png", read_alpha)
         books_2 = cv2.imread("test_data/books_2.png")
