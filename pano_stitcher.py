@@ -10,7 +10,7 @@ TODO: Implement!
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
-from find_obj import filter_matches,explore_match
+from find_obj import filter_matches, explore_match
 
 
 def homography(image_a, image_b, bff_match=False):
@@ -23,41 +23,44 @@ def homography(image_a, image_b, bff_match=False):
     Returns: the 3x3 perspective transformation matrix (aka homography)
              mapping points in image_b to corresponding points in image_a.
     """
-    
-    
+
     MIN_MATCH_COUNT = 10
 
-    
-    sift = cv2.SIFT(edgeThreshold=10, sigma = 1.25, contrastThreshold=0.08)
-    #sift = cv2.orb()
-    #sift = cv2.BRISK()
+    # sift = cv2.SIFT(edgeThreshold=10, sigma = 1.25, contrastThreshold=0.08)
+    sift = cv2.ORB(nlevels=2, edgeThreshold=5, firstLevel=0)
 
-    kp_a, des_a = sift.detectAndCompute(image_a,None)
-    kp_b, des_b = sift.detectAndCompute(image_b,None)
-    
-    bf = cv2.BFMatcher()
-    matches = bf.knnMatch(des_a,trainDescriptors = des_b,k=2)
-    p1, p2, kp_pairs = filter_matches(kp_a, kp_b, matches)
-    explore_match('find_obj', image_a,image_b,kp_pairs)#cv2 shows image
-    
+    kp_a, des_a = sift.detectAndCompute(image_a, None)
+    kp_b, des_b = sift.detectAndCompute(image_b, None)
+
+    #Brute force matching
+    # bf = cv2.BFMatcher()
+    # matches = bf.knnMatch(des_a, trainDescriptors=des_b, k=2)
+
+    #Flann matching
+    FLANN_INDEX_KDTREE = 0
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    search_params = dict(checks=50)   # or pass empty dictionary
+
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+    matches = flann.knnMatch(np.asarray(des_a, np.float32),
+      np.asarray(des_b, np.float32), 2)
+
     good = []
-    for m,n in matches:
-        if m.distance < .75*n.distance:
+    for m, n in matches:
+        if m.distance < .75 * n.distance:
             good.append(m)
-    
-    
-    if len(good)>MIN_MATCH_COUNT:
-        src_pts = np.float32([ kp_a[m.queryIdx].pt for m in good ]).reshape(-1,1,2)
-        dst_pts = np.float32([ kp_b[m.trainIdx].pt for m in good ]).reshape(-1,1,2)
 
-    
+    if len(good) > MIN_MATCH_COUNT:
+        src_pts = np.float32([kp_a[m.queryIdx].pt for m in good])\
+            .reshape(-1, 1, 2)
+        dst_pts = np.float32([kp_b[m.trainIdx].pt for m in good])\
+            .reshape(-1, 1, 2)
 
     cv2.waitKey()
     cv2.destroyAllWindows()
 
-    M, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 5.0)
+    M, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 5)
     return M
-
 
 
 def warp_image(image, homography):
@@ -78,6 +81,8 @@ def warp_image(image, homography):
         corner in the target space of 'homography', which accounts for any
         offset translation component of the homography.
     """
+
+    image = warpPerspective(image, homography, )
     pass
 
 
@@ -94,4 +99,3 @@ def create_mosaic(images, origins):
              alpha channel set to zero.
     """
     pass
-

@@ -17,7 +17,7 @@ import cv2
 from common import anorm, getsize
 
 FLANN_INDEX_KDTREE = 1  # bug: flann enums are missing
-FLANN_INDEX_LSH    = 6
+FLANN_INDEX_LSH = 6
 
 
 def init_feature(name):
@@ -38,41 +38,43 @@ def init_feature(name):
         return None, None
     if 'flann' in chunks:
         if norm == cv2.NORM_L2:
-            flann_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
+            flann_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
         else:
-            flann_params= dict(algorithm = FLANN_INDEX_LSH,
-                               table_number = 6, # 12
-                               key_size = 12,     # 20
-                               multi_probe_level = 1) #2
-        matcher = cv2.FlannBasedMatcher(flann_params, {})  # bug : need to pass empty dict (#1329)
+            flann_params = dict(algorithm=FLANN_INDEX_LSH,
+                               table_number=6,  # 12
+                               key_size=12,  # 20
+                               multi_probe_level=1)
+        matcher = cv2.FlannBasedMatcher(flann_params, {})  # bug (#1329)
     else:
         matcher = cv2.BFMatcher(norm)
     return detector, matcher
 
 
-def filter_matches(kp1, kp2, matches, ratio = 0.75):
+def filter_matches(kp1, kp2, matches, ratio=0.75):
     mkp1, mkp2 = [], []
     for m in matches:
         if len(m) == 2 and m[0].distance < m[1].distance * ratio:
             m = m[0]
-            mkp1.append( kp1[m.queryIdx] )
-            mkp2.append( kp2[m.trainIdx] )
+            mkp1.append(kp1[m.queryIdx])
+            mkp2.append(kp2[m.trainIdx])
     p1 = np.float32([kp.pt for kp in mkp1])
     p2 = np.float32([kp.pt for kp in mkp2])
     kp_pairs = zip(mkp1, mkp2)
     return p1, p2, kp_pairs
 
-def explore_match(win, img1, img2, kp_pairs, status = None, H = None):
+
+def explore_match(win, img1, img2, kp_pairs, status=None, H=None):
     h1, w1 = img1.shape[:2]
     h2, w2 = img2.shape[:2]
-    vis = np.zeros((max(h1, h2), w1+w2), np.uint8)
+    vis = np.zeros((max(h1, h2), w1 + w2), np.uint8)
     vis[:h1, :w1] = img1
-    vis[:h2, w1:w1+w2] = img2
+    vis[:h2, w1:w1 + w2] = img2
     vis = cv2.cvtColor(vis, cv2.COLOR_GRAY2BGR)
 
     if H is not None:
         corners = np.float32([[0, 0], [w1, 0], [w1, h1], [0, h1]])
-        corners = np.int32( cv2.perspectiveTransform(corners.reshape(1, -1, 2), H).reshape(-1, 2) + (w1, 0) )
+        corners = np.int32(cv2.perspectiveTransform(corners.reshape(1, -1, 2),
+                                                H).reshape(-1, 2) + (w1, 0))
         cv2.polylines(vis, [corners], True, (255, 255, 255))
 
     if status is None:
@@ -93,16 +95,17 @@ def explore_match(win, img1, img2, kp_pairs, status = None, H = None):
             col = red
             r = 2
             thickness = 3
-            cv2.line(vis, (x1-r, y1-r), (x1+r, y1+r), col, thickness)
-            cv2.line(vis, (x1-r, y1+r), (x1+r, y1-r), col, thickness)
-            cv2.line(vis, (x2-r, y2-r), (x2+r, y2+r), col, thickness)
-            cv2.line(vis, (x2-r, y2+r), (x2+r, y2-r), col, thickness)
+            cv2.line(vis, (x1 - r, y1 - r), (x1 + r, y1 + r), col, thickness)
+            cv2.line(vis, (x1 - r, y1 + r), (x1 + r, y1 - r), col, thickness)
+            cv2.line(vis, (x2 - r, y2 - r), (x2 + r, y2 + r), col, thickness)
+            cv2.line(vis, (x2 - r, y2 + r), (x2 + r, y2 - r), col, thickness)
     vis0 = vis.copy()
     for (x1, y1), (x2, y2), inlier in zip(p1, p2, status):
         if inlier:
             cv2.line(vis, (x1, y1), (x2, y2), green)
 
     cv2.imshow(win, vis)
+
     def onmouse(event, x, y, flags, param):
         cur_vis = vis
         if flags & cv2.EVENT_FLAG_LBUTTON:
@@ -112,24 +115,25 @@ def explore_match(win, img1, img2, kp_pairs, status = None, H = None):
             idxs = np.where(m)[0]
             kp1s, kp2s = [], []
             for i in idxs:
-                 (x1, y1), (x2, y2) = p1[i], p2[i]
-                 col = (red, green)[status[i]]
-                 cv2.line(cur_vis, (x1, y1), (x2, y2), col)
-                 kp1, kp2 = kp_pairs[i]
-                 kp1s.append(kp1)
-                 kp2s.append(kp2)
+                (x1, y1), (x2, y2) = p1[i], p2[i]
+                col = (red, green)[status[i]]
+                cv2.line(cur_vis, (x1, y1), (x2, y2), col)
+                kp1, kp2 = kp_pairs[i]
+                kp1s.append(kp1)
+                kp2s.append(kp2)
             cur_vis = cv2.drawKeypoints(cur_vis, kp1s, flags=4, color=kp_color)
-            cur_vis[:,w1:] = cv2.drawKeypoints(cur_vis[:,w1:], kp2s, flags=4, color=kp_color)
+            cur_vis[:, w1:] = cv2.drawKeypoints(cur_vis[:, w1:],
+                                                kp2s, flags=4, color=kp_color)
 
         cv2.imshow(win, cur_vis)
     cv2.setMouseCallback(win, onmouse)
     return vis
 
-
 if __name__ == '__main__':
     print __doc__
 
-    import sys, getopt
+    import sys
+    import getopt
     opts, args = getopt.getopt(sys.argv[1:], '', ['feature='])
     opts = dict(opts)
     feature_name = opts.get('--feature', 'sift')
@@ -163,14 +167,15 @@ if __name__ == '__main__':
 
     def match_and_draw(win):
         print 'matching...'
-        raw_matches = matcher.knnMatch(desc1, trainDescriptors = desc2, k = 2) #2
+        raw_matches = matcher.knnMatch(desc1, trainDescriptors=desc2, k=2)
         p1, p2, kp_pairs = filter_matches(kp1, kp2, raw_matches)
         if len(p1) >= 4:
             H, status = cv2.findHomography(p1, p2, cv2.RANSAC, 5.0)
             print '%d / %d  inliers/matched' % (np.sum(status), len(status))
         else:
             H, status = None, None
-            print '%d matches found, not enough for homography estimation' % len(p1)
+            print '%d matches found, not enough for homography estimation' \
+                  % len(p1)
 
         vis = explore_match(win, img1, img2, kp_pairs, status, H)
 
