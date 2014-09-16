@@ -124,7 +124,6 @@ class TestPanoStitcher(unittest.TestCase):
         books_1_origin, books_2_origin, books_3_origin = self._read_origins()
         read_alpha = -1
 
-    
         # Read the component images.
         books_1_warped = cv2.imread("test_data/books_1_warped.png", read_alpha)
         books_2 = cv2.imread("test_data/books_2.png")
