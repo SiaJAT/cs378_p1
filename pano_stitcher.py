@@ -55,8 +55,8 @@ def homography(image_a, image_b, bff_match=False):
         dst_pts = np.float32([kp_b[m.trainIdx].pt for m in good])\
             .reshape(-1, 1, 2)
 
-    cv2.waitKey()
-    cv2.destroyAllWindows()
+    # cv2.waitKey()
+    # cv2.destroyAllWindows()
 
     M, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 5)
     return M
@@ -113,20 +113,32 @@ def create_mosaic(images, origins):
     # for i in range(len(mapped)):
     #     print mapped_sorted[i][0][0]
 
-    height = max(images[0].shape[0], images[1].shape[0], images[2].shape[0]) + np.abs(origins[0][1]) - np.abs(origins[1][1])
+    origins_diff = np.abs(origins[0][1]) - np.abs(origins[1][1])
+
+    height = max(images[0].shape[0], images[1].shape[0],
+                 images[2].shape[0]) + origins_diff
+
     width = np.abs(origins[0][0]) + np.abs(origins[1][0]) + images[1].shape[1]
-    stitchedImage = np.zeros((height, width, 4), np.uint8)
+    stitch = np.zeros((height, width, 4), np.uint8)
 
-    stitchedImage[:(images[0].shape[0]), :(images[0].shape[1]),:4] = images[0]
+    stitch[:(images[0].shape[0]), :(images[0].shape[1]), :4] = images[0]
 
-    # stitchedImage[np.abs(origins[0][1]):(images[2].shape[0])+np.abs(origins[0][1]), np.abs(origins[0][0]):(np.abs(origins[0][0])+ images[2].shape[1]), :4] = images[2]
-    stitchedImage[np.abs(origins[0][1])-np.abs(origins[1][1]):, (np.abs(origins[0][0])+ np.abs(origins[1][0])):, :4] = images[1]
-    stitchedImage[np.abs(origins[0][1]):(images[2].shape[0])+np.abs(origins[0][1]), np.abs(origins[0][0]):(np.abs(origins[0][0])+ images[2].shape[1]), :4] = images[2]
+    # stitch[np.abs(origins[0][1]):(images[2].shape[0])+np.abs(origins[0][1]),
+    #               np.abs(origins[0][0]):(np.abs(origins[0][0])+
+    #                   images[2].shape[1]), :4] = images[2]
+    stitch[np.abs(origins[0][1]) - np.abs(origins[1][1]):,
+                 (np.abs(origins[0][0]) + np.abs(origins[1][0])):, :4] \
+        = images[1]
+    stitch[np.abs(origins[0][1]):(images[2].shape[0]) + np.abs(origins[0][1]),
+           np.abs(origins[0][0]):(np.abs(origins[0][0]) +
+                                  images[2].shape[1]), :4] = images[2]
 
-    cv2.imshow('img', stitchedImage)
-    cv2.waitKey(0)
+    # cv2.imshow('img', stitch)
+    # cv2.waitKey(0)
 
-    print "\norigins 0: " + str(origins[0]) + "\norigins 1: " + str(origins[1]) + "\norigins 2" + str(origins[2])
-    print "\nshape 0: " + str(images[0].shape) + "\nshape 1: " + str(images[1].shape) + "\nshape 2: " + str(images[2].shape)
+    # print "\norigins 0: " + str(origins[0]) + "\norigins 1: " +
+    #        str(origins[1]) + "\norigins 2" + str(origins[2])
+    # print "\nshape 0: " + str(images[0].shape) + "\nshape 1: " +
+    #        str(images[1].shape) + "\nshape 2: " + str(images[2].shape)
 
-    pass
+    return stitch
