@@ -26,27 +26,27 @@ def homography(image_a, image_b, bff_match=False):
     MIN_MATCH_COUNT = 10
 
     # sift = cv2.SIFT(edgeThreshold=10, sigma = 1.25, contrastThreshold=0.08)
-    sift = cv2.ORB(nlevels=2, edgeThreshold=5, firstLevel=0)
+    sift = cv2.ORB(nlevels=4, edgeThreshold=5, firstLevel=0)
 
     kp_a, des_a = sift.detectAndCompute(image_a, None)
     kp_b, des_b = sift.detectAndCompute(image_b, None)
 
     # Brute force matching
-    # bf = cv2.BFMatcher()
-    # matches = bf.knnMatch(des_a, trainDescriptors=des_b, k=2)
+    bf = cv2.BFMatcher()
+    matches = bf.knnMatch(des_a, trainDescriptors=des_b, k=2)
 
     # Flann matching
-    FLANN_INDEX_KDTREE = 0
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-    search_params = dict(checks=50)   # or pass empty dictionary
+    # FLANN_INDEX_KDTREE = 0
+    # index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    # search_params = dict(checks=50)   # or pass empty dictionary
 
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-    matches = flann.knnMatch(np.asarray(des_a, np.float32),
-                             np.asarray(des_b, np.float32), 2)
+    # flann = cv2.FlannBasedMatcher(index_params, search_params)
+    # matches = flann.knnMatch(np.asarray(des_a, np.float32),
+    #                          np.asarray(des_b, np.float32), 2)
 
     good = []
     for m, n in matches:
-        if m.distance < .75 * n.distance:
+        if m.distance < .90 * n.distance:
             good.append(m)
 
     if len(good) > MIN_MATCH_COUNT:
@@ -58,7 +58,7 @@ def homography(image_a, image_b, bff_match=False):
     # cv2.waitKey()
     # cv2.destroyAllWindows()
 
-    M, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 5)
+    M, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 1)
     return M
 
 
@@ -110,35 +110,58 @@ def create_mosaic(images, origins):
 
     mapped_sorted = sorted(mapped, key=lambda x: x[0])
 
-    # for i in range(len(mapped)):
-    #     print mapped_sorted[i][0][0]
+    width = mapped_sorted[-1][1].shape[1]
+    for x in range(0, len(mapped_sorted)):
+        width += np.abs(mapped_sorted[x][0][0])
 
-    origins_diff = np.abs(origins[0][1]) - np.abs(origins[1][1])
+    origins_diffs = []
+    i = 0
+    j = len(mapped_sorted) - 1
+    mid = len(mapped_sorted) / 2
+    while i <= mid and j > mid:
+        origins_diffs.append(
+            np.abs(mapped_sorted[i][0][1]) -
+            np.abs(mapped_sorted[j][0][1]))
+        i = i + 1
+        j = j - 1
 
-    height = max(images[0].shape[0], images[1].shape[0],
-                 images[2].shape[0]) + origins_diff
+    max_origin_diff = max(origins_diffs)
 
-    width = np.abs(origins[0][0]) + np.abs(origins[1][0]) + images[1].shape[1]
+    height = max([img.shape[0] for img in images]) + max_origin_diff
+    print str(height) + " the height"
+
     stitch = np.zeros((height, width, 4), np.uint8)
 
-    stitch[:(images[0].shape[0]), :(images[0].shape[1]), :4] = images[0]
+    left = mapped_sorted[0]
 
-    # stitch[np.abs(origins[0][1]):(images[2].shape[0])+np.abs(origins[0][1]),
-    #               np.abs(origins[0][0]):(np.abs(origins[0][0])+
-    #                   images[2].shape[1]), :4] = images[2]
-    stitch[np.abs(origins[0][1]) - np.abs(origins[1][1]):,
-                 (np.abs(origins[0][0]) + np.abs(origins[1][0])):, :4] \
-        = images[1]
-    stitch[np.abs(origins[0][1]):(images[2].shape[0]) + np.abs(origins[0][1]),
-           np.abs(origins[0][0]):(np.abs(origins[0][0]) +
-                                  images[2].shape[1]), :4] = images[2]
+    # Get Leftmost height and width
+    leftX2 = left[1].shape[0]
+    leftY2 = left[1].shape[1]
 
+    # stitch the leftmost image
+    stitch[:leftX2, :leftY2, :4] = left[1]
+
+    # get the rightmost image
+    right = mapped_sorted[-1]
+
+    # rightmost image
+    rightX2 = np.abs(left[0][1]) - np.abs(right[0][1])
+    rightY2 = np.abs(left[0][0]) + np.abs(right[0][0])
+
+    # append the rightmost image to the stitch
+    stitch[rightX2:, rightY2:, :4] = right[1]
+
+    # append middle images one by one
+    for x in range(1, len(mapped_sorted) - 1):
+        meetX1 = np.abs(mapped_sorted[x-1][0][1])
+        meetY1 = np.abs(mapped_sorted[x-1][0][0])
+
+        spanX2 = meetX1 + mapped_sorted[x][1].shape[0]
+        spanY2 = meetY1 + mapped_sorted[x][1].shape[1]
+
+        stitch[meetX1:spanX2, meetY1:spanY2, :4] = mapped_sorted[x][1]
     # cv2.imshow('img', stitch)
     # cv2.waitKey(0)
 
-    # print "\norigins 0: " + str(origins[0]) + "\norigins 1: " +
-    #        str(origins[1]) + "\norigins 2" + str(origins[2])
-    # print "\nshape 0: " + str(images[0].shape) + "\nshape 1: " +
-    #        str(images[1].shape) + "\nshape 2: " + str(images[2].shape)
-
     return stitch
+    # pass
