@@ -26,27 +26,27 @@ def homography(image_a, image_b, bff_match=False):
     MIN_MATCH_COUNT = 10
 
     # sift = cv2.SIFT(edgeThreshold=10, sigma = 1.25, contrastThreshold=0.08)
-    sift = cv2.ORB(nlevels=4, edgeThreshold=5, firstLevel=0)
+    sift = cv2.ORB(nlevels=2, edgeThreshold=5, firstLevel=0)
 
     kp_a, des_a = sift.detectAndCompute(image_a, None)
     kp_b, des_b = sift.detectAndCompute(image_b, None)
 
     # Brute force matching
-    bf = cv2.BFMatcher()
-    matches = bf.knnMatch(des_a, trainDescriptors=des_b, k=2)
+    # bf = cv2.BFMatcher()
+    # matches = bf.knnMatch(des_a, trainDescriptors=des_b, k=2)
 
     # Flann matching
-    # FLANN_INDEX_KDTREE = 0
-    # index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-    # search_params = dict(checks=50)   # or pass empty dictionary
+    FLANN_INDEX_KDTREE = 0
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    search_params = dict(checks=50)   # or pass empty dictionary
 
-    # flann = cv2.FlannBasedMatcher(index_params, search_params)
-    # matches = flann.knnMatch(np.asarray(des_a, np.float32),
-    #                          np.asarray(des_b, np.float32), 2)
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+    matches = flann.knnMatch(np.asarray(des_a, np.float32),
+                             np.asarray(des_b, np.float32), 2)
 
     good = []
     for m, n in matches:
-        if m.distance < .90 * n.distance:
+        if m.distance < .89 * n.distance:
             good.append(m)
 
     if len(good) > MIN_MATCH_COUNT:
@@ -58,7 +58,7 @@ def homography(image_a, image_b, bff_match=False):
     # cv2.waitKey()
     # cv2.destroyAllWindows()
 
-    M, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 1)
+    M, mask = cv2.findHomography(dst_pts, src_pts, cv2.RANSAC, 3)
     return M
 
 
@@ -89,7 +89,7 @@ def warp_image(image, homography):
     y_scale = int(round(homography[1, 1]))
 
     image = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
-    image = cv2.warpPerspective(image, homography, (x_scale*x, y_scale*y))
+    image = cv2.warpPerspective(image, homography, (x_scale * x, y_scale * y))
 
     return image, tup
 
@@ -153,8 +153,8 @@ def create_mosaic(images, origins):
 
     # append middle images one by one
     for x in range(1, len(mapped_sorted) - 1):
-        meetX1 = np.abs(mapped_sorted[x-1][0][1])
-        meetY1 = np.abs(mapped_sorted[x-1][0][0])
+        meetX1 = np.abs(mapped_sorted[x - 1][0][1])
+        meetY1 = np.abs(mapped_sorted[x - 1][0][0])
 
         spanX2 = meetX1 + mapped_sorted[x][1].shape[0]
         spanY2 = meetY1 + mapped_sorted[x][1].shape[1]
