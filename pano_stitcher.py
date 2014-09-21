@@ -106,7 +106,7 @@ def warp_image(image, homography):
     homography = np.dot(new_mat, homography)
     # print homography
     asList = list(tul) 
-    tup = (asList[0][0], asList[1][0]) 
+    tup = (xmin, ymin)
 
     height = int(round(ymax-ymin))
     width = int(round(xmax-xmin))

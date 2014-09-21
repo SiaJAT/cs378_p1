@@ -24,12 +24,10 @@ warpedRight, rightOrigin = pano_stitcher.warp_image(right, rightHomo)
 
 print leftOrigin
 print rightOrigin 
-rightOriginFix = (round(rightOrigin[0]), round(-1*rightOrigin[1]))
-
 middle = cv2.cvtColor(middle, cv2.COLOR_BGR2BGRA) 
 
 images = (warpedLeft, warpedRight, middle) 
-origins = (leftOrigin,rightOriginFix,(0, 0))
+origins = (leftOrigin,rightOrigin,(0, 0))
 pano = pano_stitcher.create_mosaic(images, origins) 
 
 cv2.imshow('pano', pano)
