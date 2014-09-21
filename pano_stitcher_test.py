@@ -66,7 +66,7 @@ class TestPanoStitcher(unittest.TestCase):
         H_actual = pano_stitcher.homography(houses_left_warped, houses_left)
         houses_left_warped = cv2.warpPerspective(houses_left, H_actual,
                                                  (cols, rows))
-        
+
         # The two should be nearly equal.
         H_difference = numpy.absolute(H_expected - H_actual)
         H_difference_magnitude = numpy.linalg.norm(H_difference)
