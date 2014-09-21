@@ -25,30 +25,21 @@ def homography(image_a, image_b, bff_match=False):
 
     MIN_MATCH_COUNT = 10
 
-    # sift = cv2.SIFT(edgeThreshold=10, sigma = 1.25, contrastThreshold=0.08)
-    sift = cv2.ORB(nlevels=2, edgeThreshold=5, firstLevel=0)
+    sift = cv2.SIFT()
 
     kp_a, des_a = sift.detectAndCompute(image_a, None)
     kp_b, des_b = sift.detectAndCompute(image_b, None)
 
     # Brute force matching
-    # bf = cv2.BFMatcher()
-    # matches = bf.knnMatch(des_a, trainDescriptors=des_b, k=2)
-
-    # Flann matching
-    FLANN_INDEX_KDTREE = 0
-    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-    search_params = dict(checks=50)   # or pass empty dictionary
-
-    flann = cv2.FlannBasedMatcher(index_params, search_params)
-    matches = flann.knnMatch(np.asarray(des_a, np.float32),
-                             np.asarray(des_b, np.float32), 2)
+    bf = cv2.BFMatcher()
+    matches = bf.knnMatch(des_a, trainDescriptors=des_b, k=2)
 
     good = []
     for m, n in matches:
-        if m.distance < .89 * n.distance:
+        if m.distance < .9 * n.distance:
             good.append(m)
 
+    print len(good)
     if len(good) > MIN_MATCH_COUNT:
         src_pts = np.float32([kp_a[m.queryIdx].pt for m in good])\
             .reshape(-1, 1, 2)
@@ -80,18 +71,66 @@ def warp_image(image, homography):
         corner in the target space of 'homography', which accounts for any
         offset translation component of the homography.
     """
-    upperLeft = np.array([[0], [0], [1]])
-    transformUpperLeft = np.dot(homography, upperLeft)
-    asList = list(transformUpperLeft)
-    tup = (asList[0][0], asList[1][0])
-    y, x, z = image.shape
-    x_scale = int(round(homography[0, 0]))
-    y_scale = int(round(homography[1, 1]))
 
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA)
-    image = cv2.warpPerspective(image, homography, (x_scale * x, y_scale * y))
+    print homography
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2BGRA) 
+    h, w, z = image.shape 
 
-    return image, tup
+    # homo_inv = np.linalg.inv(homography)
+
+
+    upperLeft = np.array([[0], [0], [1]]) 
+    upperRight = np.array([[w], [0], [1]])
+    bottomLeft = np.array([[0], [h], [1]])
+    bottomRight = np.array([[w], [h], [1]])
+
+    tul = np.dot(homography, upperLeft)
+    tur = np.dot(homography, upperRight)
+    tbl = np.dot(homography, bottomLeft)
+    tbr = np.dot(homography, bottomRight)
+
+    pts1 = np.float32([[0,0], [w, 0], [0, h], [w, h]])
+    pts2 = np.float32([[tul[0][0], tul[1][0]],[tur[0][0], tur[1][0]],[tbl[0][0], tbl[1][0]],[tbr[0][0], tbr[1][0]]])
+
+    M = cv2.getPerspectiveTransform(pts1,pts2)
+    # print transformUpperLeft, transformUpperRight, transformBottomRight, transformBottomLeft
+
+    p = np.array([[0, w, w, 0], [0, 0, h, h], [1, 1, 1, 1]])
+
+    p_prime = np.dot(homography, p)
+
+    # print p_prime
+
+    yrow = p_prime[1]*(1/p_prime[2])
+    xrow = p_prime[0]*(1/p_prime[2])
+    ymin = min(yrow)
+    xmin = min(xrow)
+    ymax = max(yrow)
+    xmax = max(xrow)
+
+    if ymin < 0:
+        homography[1,2] = homography[1,2]-ymin
+    if xmin < 0:
+        homography[0,2] = homography[0,2]-xmin
+
+    print homography
+    asList = list(tul) 
+    tup = (asList[0][0], asList[1][0]) 
+    
+    # x_scale = int(round(homo_inv[0, 0])) 
+    # y_scale = int(round(homo_inv[1, 1])) 
+    # x_translate = int(round(homo_inv[0,2]))
+    # y_translate = int(round(homo_inv[1,2]))
+
+    # height = (y_scale * h) 
+    # width = (x_scale * w)
+    # print height
+    # print width
+   
+    stitch = cv2.warpPerspective(src = image, M = homography, dsize = (int(round(xmax-xmin)), int(round(ymax-ymin))))
+    print stitch.shape
+    return stitch, tup
+
 
 
 def create_mosaic(images, origins):
@@ -106,6 +145,7 @@ def create_mosaic(images, origins):
              in the mosaic not covered by any input image should have their
              alpha channel set to zero.
     """
+    print origins
     mapped = map(lambda x, y: (x, y), origins, images)
 
     mapped_sorted = sorted(mapped, key=lambda x: x[0])
