@@ -160,7 +160,4 @@ def create_mosaic(images, origins):
 
         stitch[start_y:end_y, start_x:end_x, :4] = image[1]
 
-    cv2.imshow('img', stitch)
-    cv2.waitKey(0)
-
     return stitch
