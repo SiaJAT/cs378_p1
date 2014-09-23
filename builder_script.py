@@ -2,9 +2,9 @@ import cv2
 import pano_stitcher
 import numpy
 
-left = cv2.imread("my_panos//pano4.jpg",-1)
+left = cv2.imread("my_panos//pano4.jpg", -1)
 right = cv2.imread("my_panos//pano6.jpg")
-middle = cv2.imread("my_panos//pano5.jpg",-1)
+middle = cv2.imread("my_panos//pano5.jpg", -1)
 
 # left = cv2.imread("test_data//books_1.png", -1)
 # middle = cv2.imread("test_data//books_2.png")

@@ -26,9 +26,7 @@ def homography(image_a, image_b, bff_match=False):
 
     MIN_MATCH_COUNT = 10
 
-    sift = cv2.SIFT(edgeThreshold=15, sigma=1.50, contrastThreshold=0.2)
-    # sift = cv2.SIFT(edgeThreshold=10, sigma = 1.25, contrastThreshold=0.08)
-    # sift = cv2.ORB(nlevels=5, edgeThreshold=5, firstLevel=0)
+    sift = cv2.SIFT(edgeThreshold=10, sigma=1.25, contrastThreshold=0.08)
 
     kp_a, des_a = sift.detectAndCompute(image_a, None)
     kp_b, des_b = sift.detectAndCompute(image_b, None)
@@ -37,19 +35,13 @@ def homography(image_a, image_b, bff_match=False):
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(des_a, trainDescriptors=des_b, k=2)
 
-    # Flann matching
-    # FLANN_INDEX_KDTREE = 0
-    # index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-    # search_params = dict(checks=50)   # or pass empty dictionary
-
-    # flann = cv2.FlannBasedMatcher(index_params, search_params)
-    # matches = flann.knnMatch(np.asarray(des_a, np.float32),
-    #                          np.asarray(des_b, np.float32), 2)
-
     good = []
     for m, n in matches:
         if m.distance < .9 * n.distance:
             good.append(m)
+
+    global src_pts
+    global dst_pts
 
     if len(good) > MIN_MATCH_COUNT:
         src_pts = np.float32([kp_a[m.queryIdx].pt for m in good])\
