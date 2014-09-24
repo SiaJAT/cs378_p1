@@ -26,7 +26,7 @@ def homography(image_a, image_b, bff_match=False):
 
     MIN_MATCH_COUNT = 10
 
-    sift = cv2.SIFT(edgeThreshold=10, sigma=1.25, contrastThreshold=0.08)
+    sift = cv2.SIFT(edgeThreshold=10, sigma=1.5, contrastThreshold=0.08)
 
     kp_a, des_a = sift.detectAndCompute(image_a, None)
     kp_b, des_b = sift.detectAndCompute(image_b, None)
@@ -37,7 +37,7 @@ def homography(image_a, image_b, bff_match=False):
 
     good = []
     for m, n in matches:
-        if m.distance < .9 * n.distance:
+        if m.distance < .75 * n.distance:
             good.append(m)
 
     global src_pts
